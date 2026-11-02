@@ -31,10 +31,12 @@ app.post('/api/upload', upload.single('foto'), async (req, res) => {
             return res.status(400).json({ error: 'No se ha subido ninguna imagen.' });
         }
 
-// Generar un nombre limpio y seguro basado únicamente en la fecha y una extensión por defecto
+        // Generar un nombre limpio y seguro
         const fileExt = path.extname(file.originalname || '.jpg').toLowerCase();
-        const fileName = `${Date.now()}-${Math.random().toString(36.substring(2, 8))}${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${fileExt}`;
         
+        console.log('Intentando subir al bucket "fotos-boda" con el nombre:', fileName);
+
         // 1. Subir a Supabase Storage
         const { data: storageData, error: storageError } = await supabase.storage
             .from('fotos-boda')
@@ -70,19 +72,21 @@ app.post('/api/upload', upload.single('foto'), async (req, res) => {
     }
 });
 
-// Nombre de archivo completamente seguro y limpio
-        const fileExt = path.extname(file.originalname || '.jpg').toLowerCase();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${fileExt}`;
-        
-        console.log('Intentando subir al bucket "fotos-boda" con el nombre:', fileName);
+// Endpoint para obtener todas las fotos
+app.get('/api/fotos', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('fotos')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        // 1. Subir a Supabase Storage
-        const { data: storageData, error: storageError } = await supabase.storage
-            .from('fotos-boda')
-            .upload(fileName, file.buffer, {
-                contentType: file.mimetype,
-                upsert: false
-            });
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        console.error('Error al obtener fotos:', error);
+        res.status(500).json({ error: 'Error al obtener las fotos.' });
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
