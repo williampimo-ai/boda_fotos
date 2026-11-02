@@ -1,31 +1,38 @@
-<!-- Aqui los invitados van a subir sus fotos -->
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comparte las fotos de nuestra Boda</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Librería de fuegos artificiales / confeti -->
+    <!-- Librería de Confeti / Fuegos artificiales -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.min.js"></script>
+    <style>
+        body {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('/img/Boda_1.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+    </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 relative bg-cover bg-center bg-fixed" style="background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('/img/boda_1.jpeg');">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Tarjeta semitransparente con efecto Blur -->
+    <!-- Tarjeta semitransparente con efecto Glassmorphism -->
     <div class="bg-white/70 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/50">
-        <h1 class="text-3xl font-serif text-gray-800 mb-2">¡Nuestra Boda!</h1>
-        <p class="text-gray-700 mb-6 text-sm sm:text-base font-medium">Sube tus fotos y ayúdanos a conservar los mejores recuerdos de este gran día.</p>
+        <h1 class="text-3xl font-serif text-gray-900 mb-2 font-bold">¡Nuestra Boda!</h1>
+        <p class="text-gray-800 mb-6 text-sm sm:text-base font-medium">Sube tus fotos y ayúdanos a conservar los mejores recuerdos de este gran día.</p>
         
         <form id="uploadForm" class="space-y-4">
             <div class="text-left">
-                <label class="block text-sm font-semibold text-gray-800 mb-1">Tu Nombre (opcional)</label>
-                <input type="text" id="nombre" placeholder="Ej. Familia Pinzón Soriano" class="w-full px-4 py-2.5 bg-white/80 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 focus:outline-none transition">
+                <label class="block text-sm font-semibold text-gray-900 mb-1">Tu Nombre (opcional)</label>
+                <input type="text" id="nombre" placeholder="Ej. Familia Pinzón Soriano" class="w-full px-4 py-2.5 bg-white/90 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 focus:outline-none transition">
             </div>
             
             <div class="text-left">
-                <label class="block text-sm font-semibold text-gray-800 mb-1">Selecciona tus fotos</label>
-                <input type="file" id="foto" accept="image/*" multiple required class="w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-100/80 file:text-green-800 hover:file:bg-pink-200/80 cursor-pointer">
+                <label class="block text-sm font-semibold text-gray-900 mb-1">Selecciona tus fotos</label>
+                <input type="file" id="foto" accept="image/*" multiple required class="w-full text-sm text-gray-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-100 file:text-green-800 hover:file:bg-pink-200 cursor-pointer">
             </div>
 
             <!-- Previsualización múltiple en miniatura -->
@@ -96,7 +103,6 @@
             const files = fotoInput.files;
 
             try {
-                // Subida iterativa de todas las fotos seleccionadas
                 for (let i = 0; i < files.length; i++) {
                     const formData = new FormData();
                     formData.append('nombre', nombre);
