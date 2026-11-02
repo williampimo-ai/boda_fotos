@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparte las fotos de nuestra Boda</title>
+    <title>Comparte las fotos y videos de nuestra Boda</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Librería de Confeti / Fuegos artificiales -->
@@ -12,30 +12,30 @@
         body {
             background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)), url('/img/Boda_1.jpeg');
             background-size: cover;
-            background-position: center top; /* Alineado hacia arriba para que se vean mejor los rostros */
+            background-position: center top;
             background-attachment: fixed;
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-end sm:justify-center items-center p-4 pb-8 sm:pb-4">
 
-    <!-- Tarjeta muy transparente (glassmorphism sutil) y posicionada hacia abajo en móviles -->
+    <!-- Tarjeta muy transparente (glassmorphism sutil) -->
     <div class="bg-white/35 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/40">
         <h1 class="text-3xl font-serif text-gray-900 mb-2 font-bold drop-shadow-sm">¡Nuestra Boda!</h1>
-        <p class="text-gray-900 mb-6 text-sm sm:text-base font-medium drop-shadow-sm">Sube tus fotos y ayúdanos a conservar los mejores recuerdos de este gran día.</p>
+        <p class="text-gray-900 mb-6 text-sm sm:text-base font-medium drop-shadow-sm">Sube tus fotos y videos para conservar los mejores recuerdos de este gran día.</p>
         
         <form id="uploadForm" class="space-y-4">
             <div class="text-left">
                 <label class="block text-sm font-semibold text-gray-900 mb-1">Tu Nombre (opcional)</label>
-                <input type="text" id="nombre" placeholder="Ej. Familia Pinzón Soriano" class="w-full px-4 py-2.5 bg-white/70 border border-white/60 rounded-xl focus:ring-2 focus:ring-pink-400 focus:outline-none transition text-gray-900 placeholder-gray-500">
+                <input type="text" id="nombre" placeholder="Ej. Familia Pinzón Soriano" class="w-full px-4 py-2.5 bg-white/70 border border-white/60 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none transition text-gray-900 placeholder-gray-500">
             </div>
             
             <div class="text-left">
-                <label class="block text-sm font-semibold text-gray-900 mb-1">Selecciona tus fotos</label>
-                <input type="file" id="foto" accept="image/*" multiple required class="w-full text-sm text-gray-800 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-100/80 file:text-green-900 hover:file:bg-pink-200/80 cursor-pointer">
+                <label class="block text-sm font-semibold text-gray-900 mb-1">Selecciona tus fotos o videos</label>
+                <input type="file" id="foto" accept="image/*,video/*" multiple required class="w-full text-sm text-gray-800 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-100/80 file:text-green-900 hover:file:bg-pink-200/80 cursor-pointer">
             </div>
 
-            <!-- Previsualización múltiple en miniatura -->
+            <!-- Previsualización múltiple en miniatura (Fotos y Videos) -->
             <div id="preview-container" class="hidden grid grid-cols-3 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border border-white/40 rounded-xl bg-white/30"></div>
 
             <button type="submit" id="btnSubmit" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:bg-green-700 active:scale-[0.98] transition duration-200">
@@ -52,21 +52,29 @@
         const fotoInput = document.getElementById('foto');
         const previewContainer = document.getElementById('preview-container');
 
-        // Vista previa de múltiples fotos seleccionadas
+        // Vista previa múltiple inteligente para imágenes y videos
         fotoInput.addEventListener('change', (e) => {
             previewContainer.innerHTML = '';
             const files = e.target.files;
             if (files && files.length > 0) {
                 previewContainer.classList.remove('hidden');
                 Array.from(files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
+                    const fileURL = URL.createObjectURL(file);
+                    
+                    if (file.type.startsWith('video/')) {
+                        // Si es un video, creamos un elemento video miniatura sin controles pesados
+                        const video = document.createElement('video');
+                        video.src = fileURL;
+                        video.className = 'w-full h-20 object-cover rounded-lg shadow-sm border border-white/60';
+                        video.muted = true;
+                        previewContainer.appendChild(video);
+                    } else {
+                        // Si es imagen
                         const img = document.createElement('img');
-                        img.src = event.target.result;
+                        img.src = fileURL;
                         img.className = 'w-full h-20 object-cover rounded-lg shadow-sm border border-white/60';
                         previewContainer.appendChild(img);
                     }
-                    reader.readAsDataURL(file);
                 });
             } else {
                 previewContainer.classList.add('hidden');
@@ -103,10 +111,11 @@
             const files = fotoInput.files;
 
             try {
+                // Subida iterativa múltiple (soporta fotos y videos grandes en bucle)
                 for (let i = 0; i < files.length; i++) {
                     const formData = new FormData();
                     formData.append('nombre', nombre);
-                    formData.append('foto', files[i]);
+                    formData.append('foto', files[i]); // El backend lo procesará correctamente
 
                     const response = await fetch('/api/upload', {
                         method: 'POST',
@@ -117,13 +126,13 @@
                     if (!response.ok) throw new Error(result.error || 'Error al subir');
                 }
 
-                mensaje.textContent = '¡Fotos subidas con éxito! Gracias por compartir.';
+                mensaje.textContent = '¡Recuerdos subidos con éxito! Gracias por compartir.';
                 mensaje.className = 'mt-4 text-sm font-bold text-green-900 bg-white/60 p-2 rounded-xl';
                 form.reset();
                 previewContainer.classList.add('hidden');
                 previewContainer.innerHTML = '';
             } catch (error) {
-                mensaje.textContent = 'Hubo un error al subir alguna foto. Inténtalo de nuevo.';
+                mensaje.textContent = 'Hubo un error al subir algún archivo. Inténtalo de nuevo.';
                 mensaje.className = 'mt-4 text-sm font-bold text-red-900 bg-white/60 p-2 rounded-xl';
             } finally {
                 btnSubmit.disabled = false;
