@@ -1,0 +1,47 @@
+<!-- Albun en tiempo real para proyectar en pantalla -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería en Vivo - Boda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-6">
+    <header class="text-center mb-8">
+        <h1 class="text-4xl font-serif">Álbum en Vivo</h1>
+        <p class="text-gray-400 mt-2">Sube tus fotos desde tu celular</p>
+    </header>
+
+    <div id="galeria" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Las fotos se cargarán aquí dinámicamente -->
+    </div>
+
+    <script>
+        async function cargarFotos() {
+            try {
+                const response = await fetch('/api/fotos');
+                const fotos = await response.json();
+                const galeria = document.getElementById('galeria');
+                galeria.innerHTML = '';
+
+                fotos.forEach(foto => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700';
+                    div.innerHTML = `
+                        <img src="${foto.url}" class="w-full h-64 object-cover" alt="Foto de boda">
+                        <div class="p-3 text-sm text-gray-300">Subido por: <span class="font-semibold text-white">${foto.autor}</span></div>
+                    `;
+                    galeria.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error al cargar la galería:', error);
+            }
+        }
+
+        cargarFotos();
+        setInterval(cargarFotos, 10000); // Actualiza cada 10 segundos
+    </script>
+</body>
+</html>
