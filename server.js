@@ -6,13 +6,19 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Configurar multer con un límite de 15MB para fotos de alta calidad de celulares
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 15 * 1024 * 1024 } 
+});
 
 // Configuración de Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ limit: '20mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint para subir la foto
@@ -25,16 +31,22 @@ app.post('/api/upload', upload.single('foto'), async (req, res) => {
             return res.status(400).json({ error: 'No se ha subido ninguna imagen.' });
         }
 
-        const fileName = `${Date.now()}-${file.originalname}`;
+        // Limpieza segura del nombre del archivo para evitar caracteres extraños o rutas inválidas en Supabase
+        const safeName = file.originalname ? file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_') : 'foto.jpg';
+        const fileName = `${Date.now()}-${safeName}`;
         
         // 1. Subir a Supabase Storage
         const { data: storageData, error: storageError } = await supabase.storage
             .from('fotos-boda')
             .upload(fileName, file.buffer, {
-                contentType: file.mimetype
+                contentType: file.mimetype,
+                upsert: false
             });
 
-        if (storageError) throw storageError;
+        if (storageError) {
+            console.error('Error en Supabase Storage:', storageError);
+            throw storageError;
+        }
 
         // 2. Obtener la URL pública
         const { data: { publicUrl } } = supabase.storage
@@ -46,12 +58,15 @@ app.post('/api/upload', upload.single('foto'), async (req, res) => {
             .from('fotos')
             .insert([{ url: publicUrl, autor: nombre }]);
 
-        if (dbError) throw dbError;
+        if (dbError) {
+            console.error('Error en la Base de Datos:', dbError);
+            throw dbError;
+        }
 
         res.status(200).json({ success: true, message: '¡Foto subida con éxito!' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Hubo un error al procesar la imagen.' });
+        console.error('Error general en /api/upload:', error.message || error);
+        res.status(500).json({ error: 'Hubo un error al procesar la imagen: ' + (error.message || 'Error desconocido') });
     }
 });
 
@@ -66,6 +81,7 @@ app.get('/api/fotos', async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (error) {
+        console.error('Error al obtener fotos:', error);
         res.status(500).json({ error: 'Error al obtener las fotos.' });
     }
 });
