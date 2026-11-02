@@ -7,28 +7,28 @@ const path = require('path');
 
 const app = express();
 
-// Configurar multer con un límite de 15MB para fotos de alta calidad de celulares
+// Configurar multer con un límite de 50MB para soportar videos de celulares en alta calidad
 const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 15 * 1024 * 1024 } 
+    limits: { fileSize: 50 * 1024 * 1024 } // Aumentado a 50MB por archivo
 });
 
 // Configuración de Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 app.use(cors());
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ limit: '20mb', extended: true }));
+app.use(express.json({ limit: '60mb' }));
+app.use(express.urlencoded({ limit: '60mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Endpoint para subir la foto
+// Endpoint para subir archivos (fotos o videos)
 app.post('/api/upload', upload.single('foto'), async (req, res) => {
     try {
         const file = req.file;
         const nombre = req.body.nombre || 'Anónimo';
 
         if (!file) {
-            return res.status(400).json({ error: 'No se ha subido ninguna imagen.' });
+            return res.status(400).json({ error: 'No se ha subido ningún archivo.' });
         }
 
         // Generar un nombre limpio y seguro
@@ -65,14 +65,14 @@ app.post('/api/upload', upload.single('foto'), async (req, res) => {
             throw dbError;
         }
 
-        res.status(200).json({ success: true, message: '¡Foto subida con éxito!' });
+        res.status(200).json({ success: true, message: '¡Recuerdo subido con éxito!' });
     } catch (error) {
         console.error('Error general en /api/upload:', error.message || error);
-        res.status(500).json({ error: 'Hubo un error al procesar la imagen: ' + (error.message || 'Error desconocido') });
+        res.status(500).json({ error: 'Hubo un error al procesar el archivo: ' + (error.message || 'Error desconocido') });
     }
 });
 
-// Endpoint para obtener todas las fotos
+// Endpoint para obtener todas las fotos y videos
 app.get('/api/fotos', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -83,8 +83,8 @@ app.get('/api/fotos', async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (error) {
-        console.error('Error al obtener fotos:', error);
-        res.status(500).json({ error: 'Error al obtener las fotos.' });
+        console.error('Error al obtener los recuerdos:', error);
+        res.status(500).json({ error: 'Error al obtener los recuerdos.' });
     }
 });
 

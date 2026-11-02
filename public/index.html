@@ -22,8 +22,13 @@
     <!-- Tarjeta muy transparente (glassmorphism sutil) -->
     <div class="bg-white/35 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/40">
         <h1 class="text-3xl font-serif text-gray-900 mb-2 font-bold drop-shadow-sm">¡Nuestra Boda!</h1>
-        <p class="text-gray-900 mb-6 text-sm sm:text-base font-medium drop-shadow-sm">Sube tus fotos y videos para conservar los mejores recuerdos de este gran día.</p>
+        <p class="text-gray-900 mb-4 text-sm sm:text-base font-medium drop-shadow-sm">Sube tus fotos y videos para conservar los mejores recuerdos de este gran día.</p>
         
+        <!-- Nota informativa recomendada -->
+        <div class="mb-4 bg-white/40 p-2.5 rounded-xl text-xs text-gray-900 font-medium border border-white/50">
+            💡 <strong>Nota:</strong> Puedes seleccionar varios archivos a la vez (Recomendado: máximo 15 archivos por envío).
+        </div>
+
         <form id="uploadForm" class="space-y-4">
             <div class="text-left">
                 <label class="block text-sm font-semibold text-gray-900 mb-1">Tu Nombre (opcional)</label>
@@ -35,8 +40,19 @@
                 <input type="file" id="foto" accept="image/*,video/*" multiple required class="w-full text-sm text-gray-800 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-100/80 file:text-green-900 hover:file:bg-pink-200/80 cursor-pointer">
             </div>
 
-            <!-- Previsualización múltiple en miniatura (Fotos y Videos) -->
+            <!-- Previsualización múltiple en miniatura -->
             <div id="preview-container" class="hidden grid grid-cols-3 gap-2 mt-2 max-h-40 overflow-y-auto p-2 border border-white/40 rounded-xl bg-white/30"></div>
+
+            <!-- Barra de Progreso Combinada (Secuencia + Porcentaje) -->
+            <div id="progress-wrapper" class="hidden space-y-1.5">
+                <div class="flex justify-between text-xs font-bold text-gray-900 px-1">
+                    <span id="progress-sequence">Preparando archivos...</span>
+                    <span id="progress-percentage">0%</span>
+                </div>
+                <div class="w-full bg-white/50 rounded-full h-3 overflow-hidden border border-white/60">
+                    <div id="progress-bar" class="bg-green-600 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
 
             <button type="submit" id="btnSubmit" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:bg-green-700 active:scale-[0.98] transition duration-200">
                 Subir Recuerdos
@@ -51,8 +67,12 @@
         const btnSubmit = document.getElementById('btnSubmit');
         const fotoInput = document.getElementById('foto');
         const previewContainer = document.getElementById('preview-container');
+        const progressWrapper = document.getElementById('progress-wrapper');
+        const progressBar = document.getElementById('progress-bar');
+        const progressSequence = document.getElementById('progress-sequence');
+        const progressPercentage = document.getElementById('progress-percentage');
 
-        // Vista previa múltiple inteligente para imágenes y videos
+        // Vista previa múltiple para imágenes y videos
         fotoInput.addEventListener('change', (e) => {
             previewContainer.innerHTML = '';
             const files = e.target.files;
@@ -60,16 +80,13 @@
                 previewContainer.classList.remove('hidden');
                 Array.from(files).forEach(file => {
                     const fileURL = URL.createObjectURL(file);
-                    
                     if (file.type.startsWith('video/')) {
-                        // Si es un video, creamos un elemento video miniatura sin controles pesados
                         const video = document.createElement('video');
                         video.src = fileURL;
                         video.className = 'w-full h-20 object-cover rounded-lg shadow-sm border border-white/60';
                         video.muted = true;
                         previewContainer.appendChild(video);
                     } else {
-                        // Si es imagen
                         const img = document.createElement('img');
                         img.src = fileURL;
                         img.className = 'w-full h-20 object-cover rounded-lg shadow-sm border border-white/60';
@@ -101,21 +118,29 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             btnSubmit.disabled = true;
-            btnSubmit.textContent = 'Subiendo recuerdos...';
             mensaje.textContent = '';
+            progressWrapper.classList.remove('hidden');
 
-            // Disparar fuegos artificiales al iniciar la subida
             explosionFuegos();
 
             const nombre = document.getElementById('nombre').value;
             const files = fotoInput.files;
+            const totalFiles = files.length;
+            let successCount = 0;
 
             try {
-                // Subida iterativa múltiple (soporta fotos y videos grandes en bucle)
-                for (let i = 0; i < files.length; i++) {
+                for (let i = 0; i < totalFiles; i++) {
+                    const currentNum = i + 1;
+                    const percent = Math.round(((i) / totalFiles) * 100);
+                    
+                    // Actualizar textos de secuencia y porcentaje en tiempo real
+                    progressSequence.textContent = `Subiendo archivo ${currentNum} de ${totalFiles}`;
+                    progressPercentage.textContent = `${percent}%`;
+                    progressBar.style.width = `${percent}%`;
+
                     const formData = new FormData();
                     formData.append('nombre', nombre);
-                    formData.append('foto', files[i]); // El backend lo procesará correctamente
+                    formData.append('foto', files[i]);
 
                     const response = await fetch('/api/upload', {
                         method: 'POST',
@@ -124,19 +149,29 @@
 
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error || 'Error al subir');
+                    successCount++;
                 }
 
-                mensaje.textContent = '¡Recuerdos subidos con éxito! Gracias por compartir.';
+                // Al finalizar con éxito
+                progressSequence.textContent = `¡Completado (${totalFiles} de ${totalFiles})!`;
+                progressPercentage.textContent = '100%';
+                progressBar.style.width = '100%';
+
+                mensaje.textContent = `¡${successCount} recuerdos subidos con éxito! Gracias por compartir.`;
                 mensaje.className = 'mt-4 text-sm font-bold text-green-900 bg-white/60 p-2 rounded-xl';
                 form.reset();
                 previewContainer.classList.add('hidden');
                 previewContainer.innerHTML = '';
             } catch (error) {
-                mensaje.textContent = 'Hubo un error al subir algún archivo. Inténtalo de nuevo.';
+                mensaje.textContent = 'Hubo un error al subir algún archivo. Asegúrate de que los videos no sean demasiado pesados.';
                 mensaje.className = 'mt-4 text-sm font-bold text-red-900 bg-white/60 p-2 rounded-xl';
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.textContent = 'Subir Recuerdos';
+                setTimeout(() => {
+                    progressWrapper.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                }, 5000);
             }
         });
     </script>
