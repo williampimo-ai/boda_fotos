@@ -7,10 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comparte las fotos de nuestra Boda</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Librería de chispitas/confeti -->
+    <!-- Librería de fuegos artificiales / confeti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.min.js"></script>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 relative bg-cover bg-center" style="background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url('img/fondo-boda.jpg');">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative bg-cover bg-center" style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('img/Boda 1.jpeg');">
 
     <!-- Tarjeta con efecto glassmorphism -->
     <div class="bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/40">
@@ -24,17 +24,16 @@
             </div>
             
             <div class="text-left">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Selecciona una foto</label>
-                <input type="file" id="foto" accept="image/*" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-green-700 hover:file:bg-pink-100 cursor-pointer">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Selecciona tus fotos</label>
+                <!-- Atributo multiple agregado para permitir varias fotos -->
+                <input type="file" id="foto" accept="image/*" multiple required class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-green-700 hover:file:bg-pink-100 cursor-pointer">
             </div>
 
-            <!-- Vista previa opcional de la foto seleccionada -->
-            <div id="preview-container" class="hidden mt-2">
-                <img id="image-preview" src="#" alt="Vista previa" class="w-full h-36 object-cover rounded-xl border border-gray-200 shadow-sm">
-            </div>
+            <!-- Contenedor para vista previa múltiple -->
+            <div id="preview-container" class="hidden grid grid-cols-3 gap-2 mt-2 max-h-40 overflow-y-auto p-1 border border-gray-200 rounded-xl bg-gray-50"></div>
 
             <button type="submit" id="btnSubmit" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:bg-green-700 active:scale-[0.98] transition duration-200">
-                Subir Recuerdo
+                Subir Recuerdos
             </button>
         </form>
         <div id="mensaje" class="mt-4 text-sm font-medium"></div>
@@ -46,58 +45,88 @@
         const btnSubmit = document.getElementById('btnSubmit');
         const fotoInput = document.getElementById('foto');
         const previewContainer = document.getElementById('preview-container');
-        const imagePreview = document.getElementById('image-preview');
 
-        // Mostrar vista previa cuando el invitado selecciona una foto
+        // Mostrar múltiples vistas previas
         fotoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                imagePreview.src = URL.createObjectURL(file);
+            previewContainer.innerHTML = '';
+            const files = e.target.files;
+            if (files.length > 0) {
                 previewContainer.classList.remove('hidden');
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = document.createElement('img');
+                        img.src = event.target.result;
+                        img.className = 'w-full h-20 object-cover rounded-lg shadow-sm border';
+                        previewContainer.appendChild(img);
+                    }
+                    reader.readAsDataURL(file);
+                });
             } else {
                 previewContainer.classList.add('hidden');
             }
         });
 
+        // Efecto de Fuegos Artificiales
+        function lanzarFuegosArtificiales() {
+            var duration = 1.5 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             btnSubmit.disabled = true;
-            btnSubmit.textContent = 'Subiendo...';
+            btnSubmit.textContent = 'Subiendo recuerdos...';
             mensaje.textContent = '';
 
-            // Lanzar chispitas de celebración al hacer clic en enviar
-            confetti({
-                particleCount: 60,
-                spread: 70,
-                origin: { y: 0.8 },
-                colors: ['#ffd700', '#ffffff', '#22c55e', '#ec4899']
-            });
+            // Activar fuegos artificiales
+            lanzarFuegosArtificiales();
 
-            const formData = new FormData();
-            formData.append('nombre', document.getElementById('nombre').value);
-            formData.append('foto', fotoInput.files[0]);
+            const nombre = document.getElementById('nombre').value;
+            const files = fotoInput.files;
 
             try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+                // Subir cada foto seleccionada iterativamente
+                for (let i = 0; i < files.length; i++) {
+                    const formData = new FormData();
+                    formData.append('nombre', nombre);
+                    formData.append('foto', files[i]);
 
-                const result = await response.json();
-                if (response.ok) {
-                    mensaje.textContent = '¡Foto subida con éxito! Gracias por compartir.';
-                    mensaje.className = 'mt-4 text-sm font-medium text-green-600';
-                    form.reset();
-                    previewContainer.classList.add('hidden');
-                } else {
-                    throw new Error(result.error);
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Error al subir');
                 }
+
+                mensaje.textContent = '¡Todas las fotos se subieron con éxito! Gracias por compartir.';
+                mensaje.className = 'mt-4 text-sm font-medium text-green-600';
+                form.reset();
+                previewContainer.classList.add('hidden');
+                previewContainer.innerHTML = '';
             } catch (error) {
-                mensaje.textContent = 'Error al subir la foto. Inténtalo de nuevo.';
+                mensaje.textContent = 'Hubo un error al subir alguna de las fotos. Inténtalo de nuevo.';
                 mensaje.className = 'mt-4 text-sm font-medium text-red-600';
             } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Subir Recuerdo';
+                btnSubmit.textContent = 'Subir Recuerdos';
             }
         });
     </script>
