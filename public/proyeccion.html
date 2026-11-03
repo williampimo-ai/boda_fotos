@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuerdos en Vivo - Nuestra Boda</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0d1117;
+            overflow: hidden;
+        }
+        .fade-in {
+            animation: fadeIn 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between items-center p-6 text-white relative">
+
+    <!-- Encabezado superior elegante -->
+    <header class="w-full text-center z-10 pt-2">
+        <h1 class="text-3xl sm:text-5xl font-serif font-bold text-pink-200 drop-shadow-md">Nuestra Boda</h1>
+        <p class="text-sm sm:text-lg text-gray-300 font-light mt-1">¡Comparte tus fotos y videos escaneando el código QR!</p>
+    </header>
+
+    <!-- Marco principal de la Proyección -->
+    <main class="flex-1 w-full max-w-5xl flex justify-center items-center my-4 relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-sm">
+        <div id="media-container" class="w-full h-full flex justify-center items-center p-2">
+            <p class="text-gray-400 font-medium animate-pulse text-lg">Esperando los primeros recuerdos...</p>
+        </div>
+    </main>
+
+    <!-- Pie de página con el autor -->
+    <footer class="w-full text-center z-10 pb-2 min-h-[60px] flex justify-center items-center">
+        <div id="author-tag" class="hidden bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 shadow-lg">
+            <p class="text-sm sm:text-xl font-medium text-pink-100">
+                Compartido por: <span id="autor-nombre" class="font-bold text-white">Anónimo</span>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        let fotos = [];
+        let currentIndex = 0;
+        const mediaContainer = document.getElementById('media-container');
+        const authorTag = document.getElementById('author-tag');
+        const autorNombre = document.getElementById('autor-nombre');
+
+        // Función para cargar o actualizar fotos/videos desde la API
+        async function cargarFotos() {
+            try {
+                const res = await fetch('/api/fotos');
+                const data = await res.json();
+
+                if (Array.isArray(data) && data.length > 0) {
+                    const hubocambios = data.length !== fotos.length;
+                    fotos = data;
+                    
+                    // Si es la primera vez que entran datos, mostramos la primera inmediata
+                    if (mediaContainer.querySelector('p')) {
+                        mostrarRecuerdoActual();
+                    }
+                }
+            } catch (err) {
+                console.error("Error consultando fotos en el proyector:", err);
+            }
+        }
+
+        // Función para renderizar en pantalla la foto o video actual
+        function mostrarRecuerdoActual() {
+            if (fotos.length === 0) return;
+
+            const elementoActual = fotos[currentIndex];
+            const url = elementoActual.url;
+            const autor = elementoActual.autor || 'Anónimo';
+
+            // Detectar si el archivo es video por su extensión
+            const esVideo = url.match(/\.(mp4|mov|webm|3gp|hevc)$/i);
+
+            mediaContainer.innerHTML = '';
+            
+            if (esVideo) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.autoplay = true;
+                video.muted = true; // Importante para reproducir automático sin bloqueo del navegador
+                video.loop = true;
+                video.className = 'max-h-full max-w-full object-contain rounded-2xl fade-in shadow-2xl';
+                mediaContainer.appendChild(video);
+            } else {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'max-h-full max-w-full object-contain rounded-2xl fade-in shadow-2xl';
+                mediaContainer.appendChild(img);
+            }
+
+            // Mostrar el nombre del autor
+            autorNombre.textContent = autor;
+            authorTag.classList.remove('hidden');
+
+            // Avanzar al siguiente elemento para la próxima rotación
+            currentIndex = (currentIndex + 1) % fotos.length;
+        }
+
+        // Cargar las fotos apenas abre la página
+        cargarFotos();
+
+        // 1. Consultar la API cada 6 segundos para detectar fotos/videos nuevos
+        setInterval(cargarFotos, 6000);
+
+        // 2. Rotar la pantalla cada 7 segundos entre la lista disponible
+        setInterval(mostrarRecuerdoActual, 7000);
+    </script>
+</body>
+</html>
